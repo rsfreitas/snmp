@@ -2,8 +2,6 @@ package snmp
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"reflect"
 
 	"github.com/PromonLogicalis/asn1"
@@ -227,8 +225,5 @@ func Asn1Context() *asn1.Context {
 			Options: "tag:2",
 		},
 	})
-
-	// TODO remove logger
-	ctx.SetLogger(log.New(os.Stdout, "asn1: ", 0))
 	return ctx
 }
