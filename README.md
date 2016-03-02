@@ -155,6 +155,20 @@ func (a *Agent) AddRwManagedObject(oid asn1.Oid, getter Getter,
 ```
 AddRwManagedObject registers a read-write managed object.
 
+The inteface{} values returned by a Getter or received by a Setter must be of
+one of the following types:
+
+    int
+    string
+    asn1.Null
+    asn1.Oid
+    snmp.Counter32
+    snmp.Counter64
+    snmp.IpAddress
+    snmp.Opaque
+    snmp.TimeTicks
+    snmp.Unsigned32
+
 #### func (*Agent) ProcessDatagram
 
 ```go
