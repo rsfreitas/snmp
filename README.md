@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/PromonLogicalis/snmp.svg?branch=master)](https://travis-ci.org/PromonLogicalis/snmp)
 # snmp
 --
     import "github.com/PromonLogicalis/snmp"
