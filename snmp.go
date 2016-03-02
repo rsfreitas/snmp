@@ -1,9 +1,96 @@
-// TODO Documentation
+// Package snmp implements low-level support for SNMP with focus in SNMP
+// agents.
+//
+// At the encoding level it uses the PromonLogicalis/asn1 to parse and
+// serialize SNMP messages providing Go types for that.
+//
+// The package also provides transport-independent support for creating custom
+// SNMP agents with small footprint.
+//
+// A example of a simple SNMP UDP agent:
+//
+//	package main
+//
+//	import (
+//		"errors"
+//		"log"
+//		"net"
+//		"time"
+//
+//		"github.com/PromonLogicalis/asn1"
+//		"github.com/PromonLogicalis/snmp"
+//	)
+//
+//	func main() {
+//		agent := snmp.NewAgent()
+//
+//		// Set the read-only and read-write communities
+//		agent.SetCommunities("publ", "priv")
+//
+//		// Register a read-only OID.
+//		since := time.Now()
+//		agent.AddRoManagedObject(
+//			// sysUpTime
+//			asn1.Oid{1, 3, 6, 1, 2, 1, 1, 3, 0},
+//			func(oid asn1.Oid) (interface{}, error) {
+//				seconds := int(time.Now().Sub(since) / time.Second)
+//				return seconds, nil
+//			})
+//
+//		// Register a read-write OID.
+//		name := "example"
+//		agent.AddRwManagedObject(
+//			// sysName
+//			asn1.Oid{1, 3, 6, 1, 2, 1, 1, 5, 0},
+//			func(oid asn1.Oid) (interface{}, error) {
+//				return name, nil
+//			},
+//			func(oid asn1.Oid, value interface{}) error {
+//				strValue, ok := value.(string)
+//				if !ok {
+//					return snmp.Errorf(snmp.BadValue, "invalid type")
+//				}
+//				name = strValue
+//				return nil
+//			})
+//
+//		// Bind to an UDP port
+//		addr, err := net.ResolveUDPAddr("udp", ":161")
+//		if err != nil {
+//			log.Fatal(err)
+//		}
+//		conn, err := net.ListenUDP("udp", addr)
+//		if err != nil {
+//			log.Fatal(err)
+//		}
+//
+//		// Serve requests
+//		for {
+//			buffer := make([]byte, 1024)
+//			n, source, err := conn.ReadFrom(buffer)
+//			if err != nil {
+//				log.Fatal(err)
+//			}
+//
+//			buffer, err = agent.ProcessDatagram(buffer[:n])
+//			if err != nil {
+//				log.Println(err)
+//				continue
+//			}
+//
+//			_, err = conn.WriteTo(buffer, source)
+//			if err != nil {
+//				log.Fatal(err)
+//			}
+//		}
+//	}
+//
+package snmp
+
 // TODO Support for traps
 // TODO More flexible ACL and authentication mechanism.
 // TODO Use the origin to process ACLs and authentication.
 // TODO Support for SNMPv2.
-package snmp
 
 import (
 	"fmt"
@@ -38,7 +125,7 @@ func NewAgent() *Agent {
 	return a
 }
 
-// SetLogger
+// SetLogger defines the logger used for internal messages.
 func (a *Agent) SetLogger(logger *log.Logger) {
 	if logger == nil {
 		logger = log.New(ioutil.Discard, "", 0)
@@ -128,31 +215,24 @@ func (a *Agent) getManagedObject(oid asn1.Oid, next bool) *managedObject {
 	return nil
 }
 
-// ProcessRequest handles a binany SNMP message.
-func (a *Agent) ProcessDatagram(requestBytes []byte) (responseBytes []byte, err error) {
-	// Decode message. Invalid messages are discarded
-	ctx := Asn1Context()
-	msg, err := decodeMessage(ctx, requestBytes)
-	if err != nil {
-		return
-	}
-
-	// SNMPv1 for now
-	if msg.Version != 0 && msg.Version != 1 {
+// ProcessMessage handles a SNMP Message.
+func (a *Agent) ProcessMessage(request *Message) (response *Message, err error) {
+	// SNMPv1 only for now
+	if request.Version != 0 {
 		// Discard SNMPv2 messages
-		err = fmt.Errorf("invalid SNMP version %d", msg.Version)
+		err = fmt.Errorf("invalid SNMP version %d", request.Version)
 		return
 	}
 
-	rw, err := a.checkCommunity(msg.Community)
+	rw, err := a.checkCommunity(request.Community)
 	if err != nil {
 		return
 	}
 
 	// Dispatch each type of PDU
-	a.log.Printf("request: %#v\n", msg)
+	a.log.Printf("request: %#v\n", request)
 	var res GetResponsePdu
-	switch pdu := msg.Pdu.(type) {
+	switch pdu := request.Pdu.(type) {
 	case GetRequestPdu:
 		res = a.processPdu(Pdu(pdu), false, false)
 	case GetNextRequestPdu:
@@ -167,13 +247,41 @@ func (a *Agent) ProcessDatagram(requestBytes []byte) (responseBytes []byte, err 
 		}
 	default:
 		// SNMPv2 PDUs are ignored
-		err = fmt.Errorf("PDU not supported: %T", msg.Pdu)
+		err = fmt.Errorf("PDU not supported: %T", request.Pdu)
 		return
 	}
 
-	msg.Pdu = res
-	a.log.Printf("response: %#v\n", msg)
-	responseBytes, err = encodeMessage(ctx, msg)
+	// Copy request
+	copy := *request
+	response = &copy
+
+	// Set response
+	response.Pdu = res
+	a.log.Printf("response: %#v\n", response)
+	return
+}
+
+// ProcessRequest handles a binany SNMP message.
+func (a *Agent) ProcessDatagram(requestBytes []byte) (responseBytes []byte, err error) {
+	// Decode message. Invalid messages are discarded
+	request := Message{}
+	ctx := Asn1Context()
+	remaining, err := ctx.Decode(requestBytes, &request)
+	if err != nil {
+		return
+	}
+	if len(remaining) > 0 {
+		err = fmt.Errorf("%d remaining bytes.\n", len(remaining))
+		return
+	}
+
+	// Process message
+	response, err := a.ProcessMessage(&request)
+	if err != nil {
+		return
+	}
+
+	responseBytes, err = ctx.Encode(*response)
 	return
 }
 

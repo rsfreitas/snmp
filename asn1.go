@@ -9,6 +9,7 @@ import (
 	"github.com/PromonLogicalis/asn1"
 )
 
+// SNMP error codes.
 const (
 	NoError             = 0
 	TooBig              = 1
@@ -97,6 +98,7 @@ type Variable struct {
 // IpAddress is a IPv4 address.
 type IpAddress [4]byte
 
+// String returns a representation of IpAddress in dot notation.
 func (ip IpAddress) String() string {
 	return fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
 }
@@ -128,13 +130,13 @@ type NoSuchInstance asn1.Null
 
 func (e NoSuchInstance) String() string { return "NoSuchInstance" }
 
-// EndOfMibView flag.
+// EndOfMibView exception.
 type EndOfMibView asn1.Null
 
 func (e EndOfMibView) String() string { return "EndOfMibView" }
 
-// Asn1Context creates an asn1.Context and registers all the choice types
-// necessary for SNMPv1 and SNMPv2.
+// Asn1Context returns a new allocated asn1.Context and registers all the
+// choice types necessary for SNMPv1 and SNMPv2.
 func Asn1Context() *asn1.Context {
 	ctx := asn1.NewContext()
 	ctx.AddChoice("pdu", []asn1.Choice{
@@ -229,22 +231,4 @@ func Asn1Context() *asn1.Context {
 	// TODO remove logger
 	ctx.SetLogger(log.New(os.Stdout, "asn1: ", 0))
 	return ctx
-}
-
-//
-func decodeMessage(ctx *asn1.Context, data []byte) (*Message, error) {
-	msg := &Message{}
-	remaining, err := ctx.Decode(data, msg)
-	if err != nil {
-		return nil, err
-	}
-	if len(remaining) > 0 {
-		return nil, fmt.Errorf("%d remaining bytes.\n", len(remaining))
-	}
-	return msg, nil
-}
-
-//
-func encodeMessage(ctx *asn1.Context, msg *Message) ([]byte, error) {
-	return ctx.Encode(*msg)
 }
