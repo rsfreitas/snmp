@@ -36,7 +36,7 @@ func main() {
 		func(oid asn1.Oid, value interface{}) error {
 			strValue, ok := value.(string)
 			if !ok {
-				return snmp.Errorf(snmp.BadValue, "invalid type")
+				return snmp.VarErrorf(snmp.BadValue, "invalid type")
 			}
 			name = strValue
 			return nil

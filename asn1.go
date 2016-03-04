@@ -39,7 +39,7 @@ type Message struct {
 
 // Pdu is a generic type for other Protocol Data Units.
 type Pdu struct {
-	Id          int
+	Identifier  int
 	ErrorStatus int
 	ErrorIndex  int
 	Variables   []Variable
@@ -47,7 +47,7 @@ type Pdu struct {
 
 // BulkPdu is a generic type for other Protocol Data Units.
 type BulkPdu struct {
-	Id             int
+	Identifier     int
 	NonRepeaters   int
 	MaxRepetitions int
 	Variables      []Variable
@@ -66,24 +66,24 @@ type GetResponsePdu Pdu
 // SetRequestPdu is used to request data to be updated.
 type SetRequestPdu Pdu
 
-// TrapPdu is used to register a trap in SNMPv1.
-type SnmpV1TrapPdu struct {
+// V1TrapPdu is used when sending a trap in SNMPv1.
+type V1TrapPdu struct {
 	Enterprise   asn1.Oid
-	AgentAddr    IpAddress
+	AgentAddr    IPAddress
 	GenericTrap  int
 	SpecificTrap int
 	Timestamp    TimeTicks
 	Variables    []Variable
 }
 
-// GetBulkRequestPdu
+// GetBulkRequestPdu is used for bulk requests.
 type GetBulkRequestPdu BulkPdu
 
-// InformRequestPdu
+// InformRequestPdu is used for inform requests.
 type InformRequestPdu Pdu
 
-// SnmpV2TrapPdu is used to register a trap in SNMPv2.
-type SnmpV2TrapPdu Pdu
+// V2TrapPdu is used when sending a trap in SNMPv2.
+type V2TrapPdu Pdu
 
 // Variable represents an entry of the variable bindings
 type Variable struct {
@@ -93,11 +93,11 @@ type Variable struct {
 
 // Types available for Variable.Value
 
-// IpAddress is a IPv4 address.
-type IpAddress [4]byte
+// IPAddress is a IPv4 address.
+type IPAddress [4]byte
 
-// String returns a representation of IpAddress in dot notation.
-func (ip IpAddress) String() string {
+// String returns a representation of IPAddress in dot notation.
+func (ip IPAddress) String() string {
 	return fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
 }
 
@@ -155,7 +155,7 @@ func Asn1Context() *asn1.Context {
 			Options: "tag:3",
 		},
 		{
-			Type:    reflect.TypeOf(SnmpV1TrapPdu{}),
+			Type:    reflect.TypeOf(V1TrapPdu{}),
 			Options: "tag:4",
 		},
 		{
@@ -167,7 +167,7 @@ func Asn1Context() *asn1.Context {
 			Options: "tag:6",
 		},
 		{
-			Type:    reflect.TypeOf(SnmpV2TrapPdu{}),
+			Type:    reflect.TypeOf(V2TrapPdu{}),
 			Options: "tag:7",
 		},
 	})
@@ -187,7 +187,7 @@ func Asn1Context() *asn1.Context {
 		},
 		// Application wide
 		{
-			Type:    reflect.TypeOf(IpAddress{}),
+			Type:    reflect.TypeOf(IPAddress{}),
 			Options: "application,tag:0",
 		},
 		{

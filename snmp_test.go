@@ -101,7 +101,7 @@ func TestError(t *testing.T) {
 	agent.SetCommunities("publ", "priv")
 	agent.AddRoManagedObject(uptimeOid,
 		func(oid asn1.Oid) (interface{}, error) {
-			return nil, Errorf(BadValue, "error")
+			return nil, VarErrorf(BadValue, "error")
 		})
 	data, err := agent.ProcessDatagram(data)
 	if err != nil {
@@ -144,7 +144,7 @@ func TestCommunity(t *testing.T) {
 
 func TestString(t *testing.T) {
 	objs := []fmt.Stringer{
-		IpAddress{192, 168, 0, 1},
+		IPAddress{192, 168, 0, 1},
 		NoSuchObject{},
 		NoSuchInstance{},
 		EndOfMibView{},

@@ -12,7 +12,6 @@
 //	package main
 //
 //	import (
-//		"errors"
 //		"log"
 //		"net"
 //		"time"
@@ -48,7 +47,7 @@
 //			func(oid asn1.Oid, value interface{}) error {
 //				strValue, ok := value.(string)
 //				if !ok {
-//					return snmp.Errorf(snmp.BadValue, "invalid type")
+//					return snmp.VarErrorf(snmp.BadValue, "invalid type")
 //				}
 //				name = strValue
 //				return nil
@@ -181,15 +180,15 @@ func (a *Agent) AddRwManagedObject(oid asn1.Oid, getter Getter,
 	setter Setter) error {
 
 	if getter == nil {
-		return fmt.Errorf("A managed object should have at least a getter.")
+		return fmt.Errorf("a managed object should have at least a getter")
 	}
 	if setter == nil {
 		setter = func(oid asn1.Oid, value interface{}) error {
-			return Errorf(NotWritable, "OID %s is not writable", oid)
+			return VarErrorf(NotWritable, "OID %s is not writable", oid)
 		}
 	}
 	if a.getManagedObject(oid, false) != nil {
-		return fmt.Errorf("OID %d is already registered.", oid)
+		return fmt.Errorf("OID %d is already registered", oid)
 	}
 	h := managedObject{oid, nil, getter, setter}
 	a.handlers = append(a.handlers, h)
@@ -276,7 +275,7 @@ func (a *Agent) ProcessMessage(request *Message) (response *Message, err error) 
 	return
 }
 
-// ProcessRequest handles a binany SNMP message.
+// ProcessDatagram handles a binany SNMP message.
 func (a *Agent) ProcessDatagram(requestBytes []byte) (responseBytes []byte, err error) {
 	// Decode message. Invalid messages are discarded
 	request := Message{}
@@ -326,7 +325,7 @@ func (a *Agent) processPdu(pdu Pdu, next bool, set bool) GetResponsePdu {
 		}
 		if err != nil {
 			res.ErrorIndex = i + 1
-			if e, ok := err.(Error); ok {
+			if e, ok := err.(VarError); ok {
 				res.ErrorStatus = e.Status
 			} else {
 				res.ErrorStatus = GenErr
@@ -346,22 +345,22 @@ func (a *Agent) processPdu(pdu Pdu, next bool, set bool) GetResponsePdu {
 	return res
 }
 
-// Error is an error type that can be returned by a Getter or a Setter. When
-// Error is returned, it Status is used in the SNMP response.
-type Error struct {
+// VarError is an error type that can be returned by a Getter or a Setter. When
+// VarError is returned, it Status is used in the SNMP response.
+type VarError struct {
 	Status  int
 	Message string
 }
 
-var _ error = Error{}
+var _ error = VarError{}
 
-func (e Error) Error() string {
+func (e VarError) Error() string {
 	return fmt.Sprintf("%s (status: %d)", e.Message, e.Status)
 }
 
-// Errorf creates a new Error with a formatted message.
-func Errorf(status int, format string, values ...interface{}) Error {
-	return Error{
+// VarErrorf creates a new Error with a formatted message.
+func VarErrorf(status int, format string, values ...interface{}) VarError {
+	return VarError{
 		Status:  status,
 		Message: fmt.Sprintf(format, values...),
 	}

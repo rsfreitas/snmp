@@ -16,7 +16,6 @@ A example of a simple SNMP UDP agent:
     package main
 
     import (
-    	"errors"
     	"log"
     	"net"
     	"time"
@@ -52,7 +51,7 @@ A example of a simple SNMP UDP agent:
     		func(oid asn1.Oid, value interface{}) error {
     			strValue, ok := value.(string)
     			if !ok {
-    				return snmp.Errorf(snmp.BadValue, "invalid type")
+    				return snmp.VarErrorf(snmp.BadValue, "invalid type")
     			}
     			name = strValue
     			return nil
@@ -174,7 +173,7 @@ one of the following types:
 ```go
 func (a *Agent) ProcessDatagram(requestBytes []byte) (responseBytes []byte, err error)
 ```
-ProcessRequest handles a binany SNMP message.
+ProcessDatagram handles a binany SNMP message.
 
 #### func (*Agent) ProcessMessage
 
@@ -201,7 +200,7 @@ SetLogger defines the logger used for internal messages.
 
 ```go
 type BulkPdu struct {
-	Id             int
+	Identifier     int
 	NonRepeaters   int
 	MaxRepetitions int
 	Variables      []Variable
@@ -240,38 +239,13 @@ EndOfMibView exception.
 func (e EndOfMibView) String() string
 ```
 
-#### type Error
-
-```go
-type Error struct {
-	Status  int
-	Message string
-}
-```
-
-Error is an error type that can be returned by a Getter or a Setter. When Error
-is returned, it Status is used in the SNMP response.
-
-#### func  Errorf
-
-```go
-func Errorf(status int, format string, values ...interface{}) Error
-```
-Errorf creates a new Error with a formatted message.
-
-#### func (Error) Error
-
-```go
-func (e Error) Error() string
-```
-
 #### type GetBulkRequestPdu
 
 ```go
 type GetBulkRequestPdu BulkPdu
 ```
 
-GetBulkRequestPdu
+GetBulkRequestPdu is used for bulk requests.
 
 #### type GetNextRequestPdu
 
@@ -306,28 +280,28 @@ type Getter func(oid asn1.Oid) (interface{}, error)
 
 Getter is a function called to return a managed object value.
 
+#### type IPAddress
+
+```go
+type IPAddress [4]byte
+```
+
+IPAddress is a IPv4 address.
+
+#### func (IPAddress) String
+
+```go
+func (ip IPAddress) String() string
+```
+String returns a representation of IPAddress in dot notation.
+
 #### type InformRequestPdu
 
 ```go
 type InformRequestPdu Pdu
 ```
 
-InformRequestPdu
-
-#### type IpAddress
-
-```go
-type IpAddress [4]byte
-```
-
-IpAddress is a IPv4 address.
-
-#### func (IpAddress) String
-
-```go
-func (ip IpAddress) String() string
-```
-String returns a representation of IpAddress in dot notation.
+InformRequestPdu is used for inform requests.
 
 #### type Message
 
@@ -381,7 +355,7 @@ Opaque is a type for blobs.
 
 ```go
 type Pdu struct {
-	Id          int
+	Identifier  int
 	ErrorStatus int
 	ErrorIndex  int
 	Variables   []Variable
@@ -406,29 +380,6 @@ type Setter func(oid asn1.Oid, value interface{}) error
 
 Setter is a function called to set a managed object value.
 
-#### type SnmpV1TrapPdu
-
-```go
-type SnmpV1TrapPdu struct {
-	Enterprise   asn1.Oid
-	AgentAddr    IpAddress
-	GenericTrap  int
-	SpecificTrap int
-	Timestamp    TimeTicks
-	Variables    []Variable
-}
-```
-
-TrapPdu is used to register a trap in SNMPv1.
-
-#### type SnmpV2TrapPdu
-
-```go
-type SnmpV2TrapPdu Pdu
-```
-
-SnmpV2TrapPdu is used to register a trap in SNMPv2.
-
 #### type TimeTicks
 
 ```go
@@ -444,6 +395,54 @@ type Unsigned32 uint32
 ```
 
 Unsigned32 is an integer type.
+
+#### type V1TrapPdu
+
+```go
+type V1TrapPdu struct {
+	Enterprise   asn1.Oid
+	AgentAddr    IPAddress
+	GenericTrap  int
+	SpecificTrap int
+	Timestamp    TimeTicks
+	Variables    []Variable
+}
+```
+
+V1TrapPdu is used when sending a trap in SNMPv1.
+
+#### type V2TrapPdu
+
+```go
+type V2TrapPdu Pdu
+```
+
+V2TrapPdu is used when sending a trap in SNMPv2.
+
+#### type VarError
+
+```go
+type VarError struct {
+	Status  int
+	Message string
+}
+```
+
+VarError is an error type that can be returned by a Getter or a Setter. When
+VarError is returned, it Status is used in the SNMP response.
+
+#### func  VarErrorf
+
+```go
+func VarErrorf(status int, format string, values ...interface{}) VarError
+```
+VarErrorf creates a new Error with a formatted message.
+
+#### func (VarError) Error
+
+```go
+func (e VarError) Error() string
+```
 
 #### type Variable
 
