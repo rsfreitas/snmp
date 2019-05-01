@@ -1,15 +1,3 @@
----
-
-# WARNING
-
-## This repo has been archived!
-
-NO further developement will be made in the foreseen future.
-
----
-
-
-
 [![Build Status](https://travis-ci.org/PromonLogicalis/snmp.svg?branch=master)](https://travis-ci.org/PromonLogicalis/snmp) [![Go Report Card](https://goreportcard.com/badge/github.com/PromonLogicalis/snmp)](https://goreportcard.com/report/github.com/PromonLogicalis/snmp) [![GoDoc](https://godoc.org/github.com/PromonLogicalis/snmp?status.svg)](https://godoc.org/github.com/PromonLogicalis/snmp)
 # snmp
 --
